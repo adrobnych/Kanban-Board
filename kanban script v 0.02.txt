@@ -1,0 +1,301 @@
+// Source of the script: www.kanban.ws
+// Author: Aleksey Drobnych 
+
+
+function number_of_columns(){
+  var doc = SpreadsheetApp.getActiveSpreadsheet();
+  var cell = doc.getRange('a3');
+  var count = 0;
+  while( cell.getValue() != "" ){
+     cell = cell.offset(0, 1);
+     count++;
+  }
+  return count;  
+       
+}
+    
+function onOpen() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var menuEntries = [ {name: "/\\", functionName: "moveUp"},
+                      {name: "<<", functionName: "moveLeft"},
+                      {name: ">>", functionName: "moveRight"},
+                      {name: "\\/", functionName: "moveDown"}];
+  ss.addMenu("Mover", menuEntries);
+  
+  menuEntries = [ {name: "New Card", functionName: "add_card"},
+                  {name: "Delete Card", functionName: "delete_card"} ];
+  ss.addMenu("Kanban", menuEntries);
+}
+
+function moveLeft() {  
+  var value = SpreadsheetApp.getActiveRange().getValue();
+  var bg_color = SpreadsheetApp.getActiveRange().getBackgroundColor();
+  
+  //only one cell has to be processed
+  if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
+  
+  if(( value != "" ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() != 1 ) && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
+     var target_range = get_target_range(SpreadsheetApp.getActiveRange().offset(0, -1)); 
+     target_range.setValue(value);
+     target_range.setBackgroundColor(bg_color);  
+     SpreadsheetApp.getActiveRange().setValue("");
+     SpreadsheetApp.getActiveRange().setBackgroundColor("#ffffff");
+     pack(SpreadsheetApp.getActiveRange());
+     SpreadsheetApp.setActiveRange(target_range);
+  }  
+}
+
+function moveRight() {  
+  var value = SpreadsheetApp.getActiveRange().getValue();
+  var bg_color = SpreadsheetApp.getActiveRange().getBackgroundColor();
+  
+  //only one cell has to be processed
+  if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
+  
+  if(( value != "" ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() < number_of_columns() ) && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
+     var target_range = get_target_range(SpreadsheetApp.getActiveRange().offset(0, 1));
+     target_range.setValue(value);
+     target_range.setBackgroundColor(bg_color);  
+     SpreadsheetApp.getActiveRange().setValue("");
+     SpreadsheetApp.getActiveRange().setBackgroundColor("#ffffff");
+     pack(SpreadsheetApp.getActiveRange());
+     SpreadsheetApp.setActiveRange(target_range);
+  }  
+}
+
+function get_target_range(range){
+  range = range.offset( -(range.getRowIndex() - 3), 0);
+  while( range.getValue() != "" ){
+     range = range.offset(1, 0);
+  }
+    return range;
+  
+}  
+
+function pack(range){
+  //how many cards in this column?
+  var start_range = range.offset( -(range.getRowIndex() - 4), 0);
+  var count_of_cards = 0;
+  range = start_range;
+  for( var i=0; i<50; i++ ) {
+    if( range.getValue()!="" )
+       count_of_cards++;
+    range = range.offset(1,0);
+  }
+      
+  //pack each of found cards
+  for( var i=0; i<count_of_cards; i++ ){
+  
+    //find the next card
+    card = start_range.offset(i,0);
+    while( card.getValue() == "" )
+       card = card.offset(1, 0);
+    
+    //find the free slot
+    slot = start_range.offset(i,0);
+    while( slot.getValue() != "" )
+       slot = slot.offset(1, 0);
+    
+    //move the card to slot if slot is above of card
+    if( slot.getRowIndex() < card.getRowIndex() ){
+      var value = card.getValue();
+      var bg_color = card.getBackgroundColor();
+      slot.setValue(value);
+      slot.setBackgroundColor(bg_color);  
+      card.setValue("");
+      card.setBackgroundColor("#ffffff"); 
+    }
+  }
+
+}  
+
+function moveUp() {  
+  var value = SpreadsheetApp.getActiveRange().getValue();
+  var bg_color = SpreadsheetApp.getActiveRange().getBackgroundColor();
+  
+  //only one cell has to be processed
+  if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
+  
+  if(( value != "" )  && ( SpreadsheetApp.getActiveRange().getRowIndex() > 4 )){
+     var target_range = SpreadsheetApp.getActiveRange().offset(-1, 0);
+     SpreadsheetApp.getActiveRange().setValue(target_range.getValue());
+     SpreadsheetApp.getActiveRange().setBackgroundColor(target_range.getBackgroundColor());
+     target_range.setValue(value);
+     target_range.setBackgroundColor(bg_color);  
+     //pack(SpreadsheetApp.getActiveRange());
+     SpreadsheetApp.setActiveRange(target_range);
+  }  
+}
+
+function moveDown() {  
+  var value = SpreadsheetApp.getActiveRange().getValue();
+  var bg_color = SpreadsheetApp.getActiveRange().getBackgroundColor();
+  
+  //only one cell has to be processed
+  if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
+  
+  if(( value != "" )  && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
+     var target_range = SpreadsheetApp.getActiveRange().offset(1, 0);
+     SpreadsheetApp.getActiveRange().setValue(target_range.getValue());
+     SpreadsheetApp.getActiveRange().setBackgroundColor(target_range.getBackgroundColor());
+     target_range.setValue(value);
+     target_range.setBackgroundColor(bg_color);  
+     //pack(SpreadsheetApp.getActiveRange());
+     SpreadsheetApp.setActiveRange(target_range);
+  }  
+}
+
+function add_card() {
+  var doc = SpreadsheetApp.getActiveSpreadsheet();
+  var app = UiApp.createApplication().setHeight(150).setWidth(300);
+  app.setTitle("Add Kanban Card");
+  
+  var storyPanel = app.createHorizontalPanel().setSpacing(5);
+  
+     var storyLabel = app.createLabel("Story: ");
+     storyLabel.setWidth("50");
+  
+     storyPanel.add(storyLabel);
+  
+     var story = app.createTextBox().setHeight("20").setWidth("220");
+     story.setName("storyText");
+     story.setId("storyText");
+      
+     storyPanel.add(story);
+  app.add(storyPanel);
+  
+  var legendPanel = app.createHorizontalPanel().setSpacing(5);
+  
+     var legendLabel = app.createLabel("Legend: ");
+     legendLabel.setWidth("50");
+  
+     legendPanel.add(legendLabel);
+  
+     var legend = app.createListBox().setHeight("20");
+     legend.setName("legendText");
+     legend.setId("legendText");
+     //find legend types
+     var legendtype = doc.getRange('b1');
+     while( legendtype.getValue() != "" ){
+        legend.addItem(legendtype.getValue());
+        legendtype = legendtype.offset(0, 1);
+     }  
+     legendPanel.add(legend);
+  
+  app.add(legendPanel);
+  
+  var columnPanel = app.createHorizontalPanel().setSpacing(5);
+  
+     var columnLabel = app.createLabel("Column: ");
+     columnLabel.setWidth("50");
+  
+     columnPanel.add(columnLabel);
+  
+     var column = app.createListBox().setHeight("20");
+     column.setName("columnText");
+     column.setId("columnText");
+     //find column titles
+     var columntitle = doc.getRange('a3');
+     while( columntitle.getValue() != "" ){
+        column.addItem(columntitle.getValue());
+        columntitle = columntitle.offset(0, 1);
+     }  
+     columnPanel.add(column);
+  
+  app.add(columnPanel);
+  
+  var buttonPanel = app.createHorizontalPanel().setSpacing(5);
+  
+     var space1 = app.createVerticalPanel().setHeight("20").setWidth("60");
+     buttonPanel.add(space1);
+  
+     var buttonCreate = app.createButton('Create');
+     buttonPanel.add(buttonCreate);
+  
+     var handler1 = app.createServerClickHandler('add_card_create');
+     buttonCreate.addClickHandler(handler1);
+     handler1.addCallbackElement(storyPanel);
+     handler1.addCallbackElement(legendPanel);  
+     handler1.addCallbackElement(columnPanel);  
+  
+     var space2 = app.createVerticalPanel().setHeight("20").setWidth("30");
+     buttonPanel.add(space2);
+  
+     var buttonCancel = app.createButton('Cancel');
+     buttonPanel.add(buttonCancel);
+  
+     var handler2 = app.createServerClickHandler('add_card_cancel');
+     buttonCancel.addClickHandler(handler2);
+  
+  app.add(buttonPanel);
+  
+  doc.show(app);
+
+}
+
+function add_card_cancel(){
+  
+  var app = UiApp.getActiveApplication();
+  app.close();
+
+  // The following line is REQUIRED for the widget to actually close.
+  return app;
+  
+}  
+
+function add_card_create(e){
+
+   var doc = SpreadsheetApp.getActiveSpreadsheet();
+   var app = UiApp.getActiveApplication();
+  
+   var storyValue = e.parameter.storyText;
+   var legendValue = e.parameter.legendText;
+   var columnValue = e.parameter.columnText;
+  
+   //locate the target cell
+   var columntitle = doc.getRange('a3');
+   while( columntitle.getValue() != columnValue ){
+      if( columntitle.getValue() != "" )
+         columntitle = columntitle.offset(0, 1);
+      else
+         //problem - not found the column
+         return;
+   }  
+   var target_range = get_target_range(columntitle);
+   target_range.setValue(storyValue);
+  
+   //select color according to the legend
+   var legendtitle = doc.getRange('a1');
+   while( legendtitle.getValue() != legendValue ){
+      if( legendtitle.getValue() != "" )
+         legendtitle = legendtitle.offset(0, 1);
+      else
+         //problem - not found the legend
+         return;
+   }  
+   var color = legendtitle.getBackgroundColor();
+   target_range.setBackground(color);
+  
+   SpreadsheetApp.setActiveRange(target_range);
+  
+   app.close();
+
+   // The following line is REQUIRED for the widget to actually close.
+   return app;
+  
+}
+
+function delete_card(){
+ 
+  var value = SpreadsheetApp.getActiveRange().getValue();
+  
+  //only one cell has to be processed
+  if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
+  
+  if(( value != "" ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() < number_of_columns() ) && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
+     SpreadsheetApp.getActiveRange().setValue("");
+     SpreadsheetApp.getActiveRange().setBackgroundColor("#ffffff");
+     pack(SpreadsheetApp.getActiveRange());
+  }    
+  
+}

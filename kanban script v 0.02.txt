@@ -1,6 +1,6 @@
 // Source of the script: www.kanban.ws
 // Author: Aleksey Drobnych 
-// Move function improved by David Bain (david@alteroo.com)
+// Move function enhanced by David Bain (david@alteroo.com)
 
 function number_of_columns(){
   var doc = SpreadsheetApp.getActiveSpreadsheet();
@@ -27,14 +27,7 @@ function onOpen() {
   ss.addMenu("Kanban", menuEntries);
 }
 
-function moveLeft() {  
-  move(0, -1); 
-  
-}
 
-function moveRight() {  
-  move(0, 1);
-}
 
 function get_target_range(range){
   range = range.offset( -(range.getRowIndex() - 3), 0);
@@ -90,7 +83,9 @@ function getCard(range) {
   return rangedata
     
 }
-function move(_x,_y) {  
+function move(_x,_y,horizontal) { 
+  // if horizontal is true, then apply additional logic
+  
   rangedata = getCard(SpreadsheetApp.getActiveRange());
   
   var value = rangedata['value'];
@@ -100,6 +95,31 @@ function move(_x,_y) {
   //only one cell has to be processed
   if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
   
+    if (horizontal == true) {
+          var move_horizontal = false;
+      // quick check if it is ok to move horizontal at this time
+      if ((_y < 0 ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() != 1 )) {
+           move_horizontal = true;
+            } 
+      if ((_y > 0 ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() < number_of_columns() )) {
+           move_horizontal = true
+            }
+        
+     if(( value != "" ) && ( move_horizontal == true ) && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
+     var target_range = get_target_range(SpreadsheetApp.getActiveRange().offset(_x, _y));
+     target_range.setValue(value);
+     target_range.setBackgroundColor(bg_color);  
+     target_range.setFontColor(font_color);
+     SpreadsheetApp.getActiveRange().setValue("");
+     SpreadsheetApp.getActiveRange().setBackgroundColor("#ffffff");
+     SpreadsheetApp.getActiveRange().setFontColor("#000000");
+     pack(SpreadsheetApp.getActiveRange());
+     SpreadsheetApp.setActiveRange(target_range);
+              }  
+    
+    
+    }  
+  else {
   if(( value != "" )  && ( SpreadsheetApp.getActiveRange().getRowIndex() > 4 )){
      var target_range = SpreadsheetApp.getActiveRange().offset(_x,_y);
      SpreadsheetApp.getActiveRange().setValue(target_range.getValue());
@@ -113,14 +133,24 @@ function move(_x,_y) {
      SpreadsheetApp.setActiveRange(target_range);
   }  
 }
+}
+
+function moveLeft() {  
+  move(0, -1,true); 
+  
+}
+
+function moveRight() {  
+  move(0, 1,true);
+}
 
 function moveUp() {  
-  move(-1,0);
+  move(-1,0,false);
     
 }
 
 function moveDown() {  
-  move(1,0) 
+  move(1,0,false) 
 }
 
 function add_card() {

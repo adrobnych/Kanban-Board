@@ -1,6 +1,6 @@
 // Source of the script: www.kanban.ws
 // Author: Aleksey Drobnych 
-
+// Move function enhanced by David Bain (david@alteroo.com)
 
 function number_of_columns(){
   var doc = SpreadsheetApp.getActiveSpreadsheet();
@@ -27,41 +27,7 @@ function onOpen() {
   ss.addMenu("Kanban", menuEntries);
 }
 
-function moveLeft() {  
-  var value = SpreadsheetApp.getActiveRange().getValue();
-  var bg_color = SpreadsheetApp.getActiveRange().getBackgroundColor();
-  
-  //only one cell has to be processed
-  if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
-  
-  if(( value != "" ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() != 1 ) && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
-     var target_range = get_target_range(SpreadsheetApp.getActiveRange().offset(0, -1)); 
-     target_range.setValue(value);
-     target_range.setBackgroundColor(bg_color);  
-     SpreadsheetApp.getActiveRange().setValue("");
-     SpreadsheetApp.getActiveRange().setBackgroundColor("#ffffff");
-     pack(SpreadsheetApp.getActiveRange());
-     SpreadsheetApp.setActiveRange(target_range);
-  }  
-}
 
-function moveRight() {  
-  var value = SpreadsheetApp.getActiveRange().getValue();
-  var bg_color = SpreadsheetApp.getActiveRange().getBackgroundColor();
-  
-  //only one cell has to be processed
-  if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
-  
-  if(( value != "" ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() < number_of_columns() ) && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
-     var target_range = get_target_range(SpreadsheetApp.getActiveRange().offset(0, 1));
-     target_range.setValue(value);
-     target_range.setBackgroundColor(bg_color);  
-     SpreadsheetApp.getActiveRange().setValue("");
-     SpreadsheetApp.getActiveRange().setBackgroundColor("#ffffff");
-     pack(SpreadsheetApp.getActiveRange());
-     SpreadsheetApp.setActiveRange(target_range);
-  }  
-}
 
 function get_target_range(range){
   range = range.offset( -(range.getRowIndex() - 3), 0);
@@ -108,41 +74,83 @@ function pack(range){
   }
 
 }  
+function getCard(range) {
 
-function moveUp() {  
-  var value = SpreadsheetApp.getActiveRange().getValue();
-  var bg_color = SpreadsheetApp.getActiveRange().getBackgroundColor();
+  var rangedata = {} 
+      rangedata['value'] = range.getValue();
+      rangedata['bg_color'] = range.getBackgroundColor();
+      rangedata['font_color'] = range.getFontColor();
+  return rangedata
+    
+}
+function move(_x,_y,horizontal) { 
+  // if horizontal is true, then apply additional logic
+  
+  rangedata = getCard(SpreadsheetApp.getActiveRange());
+  
+  var value = rangedata['value'];
+  var bg_color = rangedata['bg_color'];
+  var font_color = rangedata['font_color'];
   
   //only one cell has to be processed
   if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
   
-  if(( value != "" )  && ( SpreadsheetApp.getActiveRange().getRowIndex() > 4 )){
-     var target_range = SpreadsheetApp.getActiveRange().offset(-1, 0);
-     SpreadsheetApp.getActiveRange().setValue(target_range.getValue());
-     SpreadsheetApp.getActiveRange().setBackgroundColor(target_range.getBackgroundColor());
+    if (horizontal == true) {
+          var move_horizontal = false;
+      // quick check if it is ok to move horizontal at this time
+      if ((_y < 0 ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() != 1 )) {
+           move_horizontal = true;
+            } 
+      if ((_y > 0 ) && ( SpreadsheetApp.getActiveRange().getColumnIndex() < number_of_columns() )) {
+           move_horizontal = true
+            }
+        
+     if(( value != "" ) && ( move_horizontal == true ) && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
+     var target_range = get_target_range(SpreadsheetApp.getActiveRange().offset(_x, _y));
      target_range.setValue(value);
      target_range.setBackgroundColor(bg_color);  
+     target_range.setFontColor(font_color);
+     SpreadsheetApp.getActiveRange().setValue("");
+     SpreadsheetApp.getActiveRange().setBackgroundColor("#ffffff");
+     SpreadsheetApp.getActiveRange().setFontColor("#000000");
+     pack(SpreadsheetApp.getActiveRange());
+     SpreadsheetApp.setActiveRange(target_range);
+              }  
+    
+    
+    }  
+  else {
+  if(( value != "" )  && ( SpreadsheetApp.getActiveRange().getRowIndex() > 4 )){
+     var target_range = SpreadsheetApp.getActiveRange().offset(_x,_y);
+     SpreadsheetApp.getActiveRange().setValue(target_range.getValue());
+     SpreadsheetApp.getActiveRange().setBackgroundColor(target_range.getBackgroundColor());
+     SpreadsheetApp.getActiveRange().setFontColor(target_range.getFontColor());
+    
+     target_range.setValue(value);
+     target_range.setBackgroundColor(bg_color);  
+     target_range.setFontColor(font_color); 
      //pack(SpreadsheetApp.getActiveRange());
      SpreadsheetApp.setActiveRange(target_range);
   }  
 }
+}
+
+function moveLeft() {  
+  move(0, -1,true); 
+  
+}
+
+function moveRight() {  
+  move(0, 1,true);
+}
+
+function moveUp() {  
+  move(-1,0,false);
+    
+}
 
 function moveDown() {  
-  var value = SpreadsheetApp.getActiveRange().getValue();
-  var bg_color = SpreadsheetApp.getActiveRange().getBackgroundColor();
-  
-  //only one cell has to be processed
-  if((SpreadsheetApp.getActiveRange().getHeight() > 1) || (SpreadsheetApp.getActiveRange().getWidth() > 1)) return;
-  
-  if(( value != "" )  && ( SpreadsheetApp.getActiveRange().getRowIndex() > 3 )){
-     var target_range = SpreadsheetApp.getActiveRange().offset(1, 0);
-     SpreadsheetApp.getActiveRange().setValue(target_range.getValue());
-     SpreadsheetApp.getActiveRange().setBackgroundColor(target_range.getBackgroundColor());
-     target_range.setValue(value);
-     target_range.setBackgroundColor(bg_color);  
-     //pack(SpreadsheetApp.getActiveRange());
-     SpreadsheetApp.setActiveRange(target_range);
-  }  
+  move(1,0,false) 
 }
 
 function add_card() {
@@ -160,8 +168,13 @@ function add_card() {
      var story = app.createTextBox().setHeight("20").setWidth("220");
      story.setName("storyText");
      story.setId("storyText");
+  
       
-     storyPanel.add(story);
+     storyPanel.add(story)
+
+  
+  
+  
   app.add(storyPanel);
   
   var legendPanel = app.createHorizontalPanel().setSpacing(5);
@@ -274,7 +287,9 @@ function add_card_create(e){
          return;
    }  
    var color = legendtitle.getBackgroundColor();
+   var fontcolor = legendtitle.getFontColor();
    target_range.setBackground(color);
+   target_range.setFontColor(fontcolor);
   
    SpreadsheetApp.setActiveRange(target_range);
   
